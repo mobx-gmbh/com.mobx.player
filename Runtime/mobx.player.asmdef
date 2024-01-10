@@ -1,0 +1,29 @@
+{
+    "name": "mobx.player",
+    "rootNamespace": "MobX.Player",
+    "references": [
+        "GUID:60b317c0e9339ed42a02f571de4723cd",
+        "GUID:451c7863c31cdec4fbc99d53f3082b53",
+        "GUID:3151dff8a275ccd469930a22ce46353f",
+        "GUID:f3da9cea81f055a4fa1b67b7e4feb0f0",
+        "GUID:06a3c3218ef731343985f180249a8161",
+        "GUID:b5d49367fe54fd948a4b755435050b0c",
+        "GUID:e2068e3ca4b8b894a8af46ff8705805a",
+        "GUID:75469ad4d38634e559750d17036d5f7c",
+        "GUID:21d1eb854b91ade49bc69a263d12bee2",
+        "GUID:ca92f98736a979747b5de3a34d731a59",
+        "GUID:4307f53044263cf4b835bd812fc161a4",
+        "GUID:de4e6084e6d474788bb8c799d6b461ec",
+        "GUID:fb24642277b1db2449da7ac148ce939d",
+        "GUID:d8b63aba1907145bea998dd612889d6b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

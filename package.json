@@ -1,0 +1,40 @@
+{
+  "name": "com.mobx.player",
+  "version": "1.0.0",
+  "displayName": "Player",
+  "description": "Player & Character Locomotion package, featuring a fist, third, topdown and free camera and locomotion controller.",
+  "unity": "2022.3",
+  "documentationUrl": "https://github.com/MobX/com.mobx.player",
+  "changelogUrl": "https://github.com/MobX/com.mobx.player/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/MobX/com.mobx.player/blob/main/LICENSE.md",
+  "dependencies": {
+    "com.mobx.utilities": "1.0.0",
+    "com.mobx.mediator": "1.0.0",
+    "com.mobx.cursor-management": "1.0.0",
+    "com.mobx.ui": "1.0.0",
+    "com.mobx.inspector": "1.0.0",
+    "com.mobx.development-tools": "1.3.1",
+    "com.unity.cinemachine": "2.9.7",
+    "com.unity.splines": "2.5.2",
+    "com.unity.inputsystem": "1.7.0",
+    "com.unity.mathematics": "1.3.1"
+  },
+  "samples": [
+    {
+      "displayName": "Controller",
+      "description": "Character Controller Prefabs",
+      "path": "Samples~/Controller"
+    }
+  ],
+  "keywords": [
+    "cursor",
+    "management",
+    "animation"
+  ],
+  "author": {
+    "name": "MobX",
+    "email": "johnbaracudagames@gmail.com",
+    "url": "https://johnbaracuda.com/"
+  },
+  "type": "tool"
+}
