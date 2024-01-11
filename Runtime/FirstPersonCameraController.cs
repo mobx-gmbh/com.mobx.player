@@ -1,5 +1,4 @@
-﻿using MobX.Mediator;
-using MobX.Player.Locomotion;
+﻿using MobX.Player.Locomotion;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -10,7 +9,6 @@ namespace MobX.Player
         [Header("Reference")]
         [SerializeField] [Required] private FirstPersonSettings settings;
         [SerializeField] [Required] private LocomotionController locomotionController;
-        [SerializeField] [Required] private IntSaveAsset firstPersonFieldOfView;
 
         [Header("Transforms")]
         [SerializeField] [Required] private Transform cameraTransform;
@@ -24,12 +22,6 @@ namespace MobX.Player
         private void Start()
         {
             transform.SetParent(Character.ExternalCameraFolder);
-            SetupPersistentSettings();
-        }
-
-        private void OnDestroy()
-        {
-            ShutdownPersistentSettings();
         }
 
         #endregion
@@ -81,27 +73,6 @@ namespace MobX.Player
 
         protected override void OnCameraEnabled()
         {
-        }
-
-        #endregion
-
-
-        #region Persistent Settings
-
-        private void SetupPersistentSettings()
-        {
-            firstPersonFieldOfView.Changed += UpdateFieldOfView;
-            UpdateFieldOfView(firstPersonFieldOfView.Value);
-        }
-
-        private void UpdateFieldOfView(int fieldOfView)
-        {
-            VirtualCamera.m_Lens.FieldOfView = fieldOfView;
-        }
-
-        private void ShutdownPersistentSettings()
-        {
-            firstPersonFieldOfView.Changed -= UpdateFieldOfView;
         }
 
         #endregion

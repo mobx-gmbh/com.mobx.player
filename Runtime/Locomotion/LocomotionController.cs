@@ -796,6 +796,16 @@ namespace MobX.Player.Locomotion
         #endregion
 
 
+        #region KKC: Teleport
+
+        public void Teleport(Vector3 position, Quaternion rotation, bool bypassInterpolation = true)
+        {
+            _motor.SetPositionAndRotation(position, rotation, bypassInterpolation);
+        }
+
+        #endregion
+
+
         #region Gizmos
 
         protected LocomotionController()
