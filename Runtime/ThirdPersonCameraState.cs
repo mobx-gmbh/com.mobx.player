@@ -16,5 +16,15 @@
         {
             PlayerCharacter.ThirdPersonCameraController.Deactivate();
         }
+
+        protected override void OnCameraStateEnabled()
+        {
+            PlayerCharacter.ThirdPersonCameraController.Activate();
+        }
+
+        protected override void OnCameraStateDisabled()
+        {
+            PlayerCharacter.ThirdPersonCameraController.Deactivate();
+        }
     }
 }

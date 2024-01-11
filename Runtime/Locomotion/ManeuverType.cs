@@ -1,6 +1,6 @@
 ﻿namespace MobX.Player.Locomotion
 {
-    public enum SpaceMovementMode
+    public enum ManeuverType
     {
         Jump,
         Dash

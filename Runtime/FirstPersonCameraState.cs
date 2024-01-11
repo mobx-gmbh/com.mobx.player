@@ -27,5 +27,15 @@ namespace MobX.Player
             character.Value.FirstPersonCameraController.Deactivate();
             firstPersonHUD.Close();
         }
+
+        protected override void OnCameraStateEnabled()
+        {
+            PlayerCharacter.FirstPersonCameraController.Activate();
+        }
+
+        protected override void OnCameraStateDisabled()
+        {
+            PlayerCharacter.FirstPersonCameraController.Deactivate();
+        }
     }
 }

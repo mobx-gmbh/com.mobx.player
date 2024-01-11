@@ -50,6 +50,10 @@ namespace MobX.Player
         protected sealed override void OnStateEnabled()
         {
             inputState.Activate();
+            if (mainCamera.Value != null)
+            {
+                mainCamera.Value.cullingMask = cullingMask;
+            }
             OnCameraStateEnabled();
         }
 

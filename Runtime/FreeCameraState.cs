@@ -18,13 +18,7 @@ namespace MobX.Player
 
         protected override void OnCameraStateEnter(CameraState previousState)
         {
-            if (_cameraController == null)
-            {
-                _cameraController = Instantiate(cameraControllerPrefab);
-                _cameraController.DontDestroyOnLoad();
-            }
-
-            _cameraController.Activate();
+            ActivateFreeCamera();
 
             var isCharacterNull = selectedCharacter.Value.IsNull();
             if (isCharacterNull)
@@ -65,7 +59,28 @@ namespace MobX.Player
             }
         }
 
+        private void ActivateFreeCamera()
+        {
+            if (_cameraController == null)
+            {
+                _cameraController = Instantiate(cameraControllerPrefab);
+                _cameraController.DontDestroyOnLoad();
+            }
+
+            _cameraController.Activate();
+        }
+
         protected override void OnCameraStateExit(CameraState nextState)
+        {
+            _cameraController.Deactivate();
+        }
+
+        protected override void OnCameraStateEnabled()
+        {
+            ActivateFreeCamera();
+        }
+
+        protected override void OnCameraStateDisabled()
         {
             _cameraController.Deactivate();
         }
