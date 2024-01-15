@@ -5,18 +5,19 @@ using UnityEngine;
 
 namespace MobX.Player
 {
+    [ExecuteInEditMode]
     public class FieldOfViewController : MonoBehaviour
     {
         [SerializeField] [Required] private CinemachineVirtualCamera virtualCamera;
         [SerializeField] [Required] private ValueAssetRO<int> fieldOfView;
 
-        private void Start()
+        private void OnEnable()
         {
             fieldOfView.Changed += UpdateFieldOfView;
             UpdateFieldOfView(fieldOfView.Value);
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
             fieldOfView.Changed -= UpdateFieldOfView;
         }

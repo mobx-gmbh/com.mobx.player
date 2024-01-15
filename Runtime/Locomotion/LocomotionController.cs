@@ -1,7 +1,6 @@
 ﻿using Baracuda.Monitoring;
 using Drawing;
 using KinematicCharacterController;
-using MobX.DevelopmentTools.Visualization;
 using MobX.Mediator.Cooldown;
 using MobX.UI;
 using MobX.Utilities;
@@ -826,10 +825,6 @@ namespace MobX.Player.Locomotion
             {
                 return;
             }
-
-            var self = transform;
-            var selfPosition = self.position;
-            Visualize.BlueLine(selfPosition, selfPosition + self.forward);
 
             var movementInput = _inputs.MovementInput;
             var movementMagnitude = movementInput.magnitude;

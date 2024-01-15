@@ -20,8 +20,8 @@ namespace MobX.Player
         [SerializeField] [Required] private ValueAsset<Quaternion> targetRotation;
         [SerializeField] [Required] private ValueAsset<Quaternion> rotationRotation;
         [SerializeField] [Required] private ValueAsset<float> targetScroll;
-        [SerializeField] [Required] private HideCursorProvider cursorHide;
-        [SerializeField] [Required] private LockCursorProvider cursorLock;
+        [SerializeField] [Required] private HideCursorLocks cursorHide;
+        [SerializeField] [Required] private LockCursorLocks cursorLock;
         [Header("References")]
         [SerializeField] [RequiredIn(PrefabKind.PrefabInstance)]
         private PlayerCharacter character;

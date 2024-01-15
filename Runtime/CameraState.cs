@@ -11,7 +11,7 @@ namespace MobX.Player
         [Foldout("State")]
         [Header("Mediator")]
         [SerializeField] [Required] private PlayerCharacterValueAsset playerCharacter;
-        [SerializeField] [Required] private KeyCollectionAsset playerRepresentationBlocker;
+        [SerializeField] [Required] private LockAsset playerRepresentationBlocker;
         [SerializeField] [Required] private CameraValueAsset mainCamera;
 
         [Header("Input")]

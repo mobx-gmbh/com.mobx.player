@@ -19,9 +19,9 @@ namespace MobX.Player
 
         [Foldout("Input")]
         [SerializeField] [Required] private InputActionAsset inputActionAsset;
-        [SerializeField] [Required] private HideCursorProvider cursorHide;
-        [SerializeField] [Required] private ConfineCursorProvider cursorConfines;
-        [SerializeField] [Required] private LockCursorProvider cursorLocks;
+        [SerializeField] [Required] private HideCursorLocks cursorHide;
+        [SerializeField] [Required] private ConfineCursorLocks cursorConfines;
+        [SerializeField] [Required] private LockCursorLocks cursorLocks;
 
         [Header("Input Actions")]
         [Tooltip("Action maps that are enabled when this context is activated")]
