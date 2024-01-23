@@ -1,4 +1,5 @@
-﻿using MobX.Player.Locomotion;
+﻿using MobX.Mediator;
+using MobX.Player.Locomotion;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -9,6 +10,7 @@ namespace MobX.Player
         [Header("Reference")]
         [SerializeField] [Required] private FirstPersonSettings settings;
         [SerializeField] [Required] private LocomotionController locomotionController;
+        [SerializeField] [Required] private Vector2ValueAsset recoilValueAsset;
 
         [Header("Transforms")]
         [SerializeField] [Required] private Transform cameraTransform;
@@ -42,6 +44,12 @@ namespace MobX.Player
             var rotationHorizontal = settings.MouseSensitivity * rotation.x;
             var rotationVertical = settings.MouseSensitivity * rotation.y;
 
+            var recoil = recoilValueAsset.Value;
+            rotationHorizontal += recoil.x;
+            rotationVertical += recoil.y;
+
+            recoilValueAsset.Value = Vector2.zero;
+
             bodyTransform.Rotate(Vector3.up * rotationHorizontal, Space.Self);
 
             var rotationY = cameraTransform.localEulerAngles.y;
@@ -55,13 +63,15 @@ namespace MobX.Player
             var movementVector = new Vector3(direction.x, 0, direction.y);
 
             var inputs = new LocomotionInputs(
+                VirtualCamera.transform,
                 movementVector,
                 bodyTransform.rotation,
                 CameraMode.FirstPerson,
                 settings.AimInput.action,
                 settings.JumpInput.action,
                 settings.SprintInput.action,
-                settings.CrouchInput.action
+                settings.CrouchInput.action,
+                settings.BlinkInput
             );
 
             locomotionController.SetInputs(inputs);

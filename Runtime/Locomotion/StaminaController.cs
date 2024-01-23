@@ -18,30 +18,30 @@ namespace MobX.Player.Locomotion
 
         public float Stamina => currentStamina.Value;
         public float MaximumStamina => maximumStamina.Value;
-        public int StaminaPerBar => settings.StaminaPerBar;
+        public int StaminaPerBar => settings.StaminaSettings.StaminaPerBar;
 
         [Preserve]
         [Command("add-max-stamina")]
         private void IncrementStaminaCommand(int staminaBars = 1)
         {
-            maximumStamina.Value += settings.StaminaPerBar * staminaBars;
+            maximumStamina.Value += settings.StaminaSettings.StaminaPerBar * staminaBars;
         }
 
         [Preserve]
         [Command("remove-max-stamina")]
         private void DecrementStaminaCommand(int staminaBars = 1)
         {
-            maximumStamina.Value -= settings.StaminaPerBar * staminaBars;
+            maximumStamina.Value -= settings.StaminaSettings.StaminaPerBar * staminaBars;
         }
 
         private void Start()
         {
-            maximumStamina.Value = settings.StaminaPerBar * settings.StaminaBars;
+            maximumStamina.Value = settings.StaminaSettings.StaminaPerBar * settings.StaminaSettings.StaminaBars;
             currentStamina.Value = maximumStamina.Value;
-            staminaRegenerationCooldown.Value = settings.StaminaRegenerationCooldown;
+            staminaRegenerationCooldown.Value = settings.StaminaSettings.StaminaRegenerationCooldown;
         }
 
-        public bool HasEnoughStamina(StaminaCost cost)
+        public bool HasEnoughStaminaFor(StaminaCost cost)
         {
             var amount = GetFlatAmount(cost);
             return currentStamina.Value >= amount;
@@ -71,16 +71,18 @@ namespace MobX.Player.Locomotion
             return cost.Mode switch
             {
                 StaminaCostMode.Flat => cost.FlatAmount,
-                StaminaCostMode.PerSeconds => cost.PerSecondAmount * Time.deltaTime,
+                StaminaCostMode.PerSeconds => cost.PerSecondAmount * Time.unscaledDeltaTime,
                 StaminaCostMode.RemainingBar => GetRemainingStaminaInCurrentBar(),
                 StaminaCostMode.Percentage => MaximumStamina.GetPercentage(cost.PercentageAmount),
+                StaminaCostMode.BarsPerSecond => cost.PerSecondAmount * StaminaPerBar * Time.unscaledDeltaTime,
+                StaminaCostMode.Bar => StaminaPerBar,
                 var _ => default(float)
             };
         }
 
         public float GetRemainingStaminaInCurrentBar()
         {
-            var subAmount = settings.StaminaPerBar;
+            var subAmount = settings.StaminaSettings.StaminaPerBar;
             var remainder = currentStamina.Value % subAmount;
 
             if (remainder == 0)
@@ -103,7 +105,7 @@ namespace MobX.Player.Locomotion
                 return;
             }
             var value = currentStamina.Value;
-            var increase = settings.StaminaRegenerationSpeed * Time.deltaTime;
+            var increase = settings.StaminaSettings.StaminaRegenerationSpeed * Time.deltaTime;
             var staminaValue = (value + increase).WithMaxLimit(maximumStamina.Value);
             currentStamina.Value = staminaValue;
         }

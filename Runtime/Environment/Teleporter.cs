@@ -50,8 +50,6 @@ namespace MobX.Player.Environment
             var position = transform.position;
             var rotation = overrideRotation ? transform.rotation : playerCharacter.transform.rotation;
 
-            Debug.Log("Teleporter", $"Teleporting Player to: {position}");
-
             playerCharacter.LocomotionController.Teleport(position, rotation);
         }
 

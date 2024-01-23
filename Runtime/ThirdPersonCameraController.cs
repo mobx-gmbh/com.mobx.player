@@ -86,13 +86,15 @@ namespace MobX.Player
             self.position = Character.transform.position;
 
             var inputs = new LocomotionInputs(
+                VirtualCamera.transform,
                 movementVector,
                 self.rotation,
                 CameraMode.ThirdPerson,
                 settings.AimInput.action,
                 settings.JumpInput.action,
                 settings.SprintInput.action,
-                settings.CrouchInput.action);
+                settings.CrouchInput.action,
+                settings.BlinkInput);
 
             locomotionController.SetInputs(inputs);
         }

@@ -33,7 +33,7 @@ namespace MobX.Player.Locomotion
 
         public static StaminaCost PerSeconds(float value)
         {
-            return new StaminaCost(StaminaCostMode.Flat, 0, 0, value);
+            return new StaminaCost(StaminaCostMode.PerSeconds, 0, 0, value);
         }
 
         public static StaminaCost Percentage(float value)
@@ -41,9 +41,19 @@ namespace MobX.Player.Locomotion
             return new StaminaCost(StaminaCostMode.Percentage, 0, value, 0);
         }
 
+        public static StaminaCost BarsPerSecond(float value)
+        {
+            return new StaminaCost(StaminaCostMode.BarsPerSecond, 0, 0, value);
+        }
+
+        public static StaminaCost RemainingBar()
+        {
+            return new StaminaCost(StaminaCostMode.RemainingBar, 0, 0, 0);
+        }
+
         public static StaminaCost Bar()
         {
-            return new StaminaCost(StaminaCostMode.Flat, 0, 0, 0);
+            return new StaminaCost(StaminaCostMode.Bar, 0, 0, 0);
         }
 
         private StaminaCost(StaminaCostMode mode, float flatAmount, float percentage, float perSecondAmount)
@@ -60,6 +70,8 @@ namespace MobX.Player.Locomotion
         Flat = 0,
         PerSeconds = 1,
         RemainingBar = 2,
-        Percentage = 3
+        Percentage = 3,
+        BarsPerSecond = 4,
+        Bar = 5
     }
 }

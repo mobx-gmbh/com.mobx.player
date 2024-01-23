@@ -19,6 +19,7 @@ namespace MobX.Player
         [SerializeField] [Required] private InputActionReference sprintInput;
         [SerializeField] [Required] private InputActionReference crouchInput;
         [SerializeField] [Required] private InputActionReference aimInput;
+        [SerializeField] [Required] private InputActionReference blinkInput;
 
         public float MouseSensitivity => mouseSensitivity;
         public float MinVerticalAngle => minVerticalAngle;
@@ -30,5 +31,6 @@ namespace MobX.Player
         public InputActionReference SprintInput => sprintInput;
         public InputActionReference CrouchInput => crouchInput;
         public InputActionReference AimInput => aimInput;
+        public InputActionReference BlinkInput => blinkInput;
     }
 }
