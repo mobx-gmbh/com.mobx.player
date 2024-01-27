@@ -1,5 +1,6 @@
 ﻿using MobX.Mediator;
 using MobX.Player.Locomotion;
+using MobX.UI;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -41,6 +42,10 @@ namespace MobX.Player
 
             var rotation = settings.LookInput.action.ReadValue<Vector2>();
 
+            rotation *= Controls.IsGamepadScheme
+                ? settings.LookSensitivityGamepad.Value
+                : settings.LookSensitivityDesktop.Value;
+
             var rotationHorizontal = settings.MouseSensitivity * rotation.x;
             var rotationVertical = settings.MouseSensitivity * rotation.y;
 
@@ -62,19 +67,14 @@ namespace MobX.Player
             var direction = settings.MovementInput.action.ReadValue<Vector2>();
             var movementVector = new Vector3(direction.x, 0, direction.y);
 
-            var inputs = new LocomotionInputs(
+            var inputs = new CameraInputs(
                 VirtualCamera.transform,
                 movementVector,
                 bodyTransform.rotation,
-                CameraMode.FirstPerson,
-                settings.AimInput.action,
-                settings.JumpInput.action,
-                settings.SprintInput.action,
-                settings.CrouchInput.action,
-                settings.BlinkInput
+                CameraMode.FirstPerson
             );
 
-            locomotionController.SetInputs(inputs);
+            locomotionController.SetCameraInputs(inputs);
         }
 
         protected override void OnCameraDisabled()

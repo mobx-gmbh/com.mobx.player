@@ -27,13 +27,16 @@ namespace MobX.Player.Locomotion
 
         [SerializeField] [Required] private LocomotionSettings settings;
 
+        [Header("Mediator")]
+        [SerializeField] [Required] private CameraShakeEvent cameraShakeEvent;
+
         [Header("Transforms")]
-        [SerializeField] private Transform centerOfGravity;
-        [SerializeField] private Transform headTransform;
-        [SerializeField] private Transform standStillJumpDirection;
-        [SerializeField] private Transform postSlideJumpDirection;
-        [SerializeField] private Transform sprintJumpDirection;
-        [SerializeField] private Transform forwardJumpDirection;
+        [SerializeField] [Required] private Transform centerOfGravity;
+        [SerializeField] [Required] private Transform headTransform;
+        [SerializeField] [Required] private Transform standStillJumpDirection;
+        [SerializeField] [Required] private Transform postSlideJumpDirection;
+        [SerializeField] [Required] private Transform sprintJumpDirection;
+        [SerializeField] [Required] private Transform forwardJumpDirection;
 
         // Reference Fields
         private readonly List<Collider> _ignoredCollider = new();
@@ -43,8 +46,9 @@ namespace MobX.Player.Locomotion
 
         // Basic Input Fields
         private bool _hasInputs;
+        [Monitor]
         private MovementDirection _inputDirection;
-        private LocomotionInputs _inputs;
+        private CameraInputs _inputs;
 
         // Player Movement and State Fields
         private Vector3 _accumulatedGravity;
@@ -57,10 +61,15 @@ namespace MobX.Player.Locomotion
         private bool _isFalling;
         private bool _isSprinting;
         private int _jumpCounter;
+        private float _movementMagnitude;
+        private float _targetMovementMagnitude;
+        [Monitor] private float _inputMovementSpeed;
 
         // Sliding Mechanics
         private float _slideTime;
         private Vector3 _slideVelocity;
+        private float _slideMagnitude;
+        private bool _isWeakSlide;
 
         // Jump Mechanics
         private float _jumpElapsedTime;
@@ -73,7 +82,9 @@ namespace MobX.Player.Locomotion
         private float _dashDuration;
 
         // Maneuver Mechanics
+        private bool _requireHardInputForNextManeuver;
         private bool _maneuverPressedThisFrame;
+        private bool _wasManeuverExecutedThisFrame;
         private bool _maneuverPressed;
         private int _performedManeuverCount;
         private bool _isManeuver;
@@ -103,6 +114,12 @@ namespace MobX.Player.Locomotion
         private Timer _postSlideTimer;
         private Timer _postGroundJumpGraceTimer;
         private float _timeScaleFactor = 1;
+        [Monitor] private bool _unbiasedGrounded;
+
+        // Thrustdown
+        [Monitor] private bool _isThrustDown;
+        [Monitor] private Vector3 _accumulatedThrustDownForce;
+        [Monitor] private float _thrustDownForceTimer;
 
         #endregion
 
@@ -115,6 +132,8 @@ namespace MobX.Player.Locomotion
         private CrouchLocomotionSettings CrouchSettings => settings.CrouchSettings;
         private StaminaLocomotionSettings StaminaSettings => settings.StaminaSettings;
         private BlinkLocomotionSettings BlinkSettings => settings.BlinkSettings;
+        private ThrustDownLocomotionSettings ThrustDownSettings => settings.ThrustDownSettings;
+        private InputLocomotionSettings InputSettings => settings.InputSettings;
         private SaveDataLocomotionSettings SaveDataSettings => settings.SaveDataSettings;
 
         private Vector3 Velocity => transform.position - _lastPosition;
@@ -153,27 +172,155 @@ namespace MobX.Player.Locomotion
         #endregion
 
 
-        #region KKC: Inputs
+        #region Camera Inputs
 
-        public void SetInputs(in LocomotionInputs inputs)
+        public void SetCameraInputs(in CameraInputs inputs)
         {
             _inputs = inputs;
             _hasInputs = true;
-            if (_inputs.ManeuverInput.WasPressedThisFrame())
+            if (InputSettings.ManeuverInput.action.WasPressedThisFrame())
             {
                 _maneuverPressedThisFrame = true;
             }
-            if (_inputs.ManeuverInput.IsPressed())
+            if (InputSettings.ManeuverInput.action.IsPressed())
             {
                 _maneuverPressed = true;
             }
 
-            if (_inputs.BlinkInput.WasPressedThisFrame())
+            if (InputSettings.BlinkInput.action.WasPressedThisFrame())
             {
                 _blinkPressedThisFrame = true;
             }
 
             ProcessCrouchInput();
+        }
+
+        #endregion
+
+
+        #region Input Direction & Speed Setup
+
+        private void UpdateInputMovementSpeed()
+        {
+            var inputVector = _inputs.MovementInput.normalized;
+            if (inputVector.magnitude <= 0.1f)
+            {
+                _inputMovementSpeed = 0;
+                return;
+            }
+
+            var forwardsMovementSpeed = MovementSettings.MovementSpeedForward;
+            var backwardsMovementSpeed = MovementSettings.MovementSpeedBackward;
+            var sideMovementSpeed = MovementSettings.MovementSpeedSide;
+
+            var angle = Mathf.Atan2(inputVector.x, inputVector.z) * Mathf.Rad2Deg;
+            angle = (angle + 360) % 360;
+
+            var offset = MovementSettings.MovementSpeedTransitionAngle * .5f;
+
+            // Forwards
+            if (angle > 315 + offset || angle < 45 - offset)
+            {
+                _inputMovementSpeed = forwardsMovementSpeed;
+                return;
+            }
+
+            // Forwards to Right
+            if (angle >= 45 - offset && angle <= 45 + offset)
+            {
+                var min = 45 - offset;
+                var max = 45 + offset;
+                var delta = Mathf.InverseLerp(min, max, angle);
+                _inputMovementSpeed = Mathf.Lerp(forwardsMovementSpeed, sideMovementSpeed, delta);
+                return;
+            }
+
+            // Right
+            if (angle > 45 + offset && angle < 135 - offset)
+            {
+                _inputMovementSpeed = sideMovementSpeed;
+                return;
+            }
+
+            // Right to Backward
+            if (angle >= 135 - offset && angle <= 135 + offset)
+            {
+                var min = 135 - offset;
+                var max = 135 + offset;
+                var delta = Mathf.InverseLerp(min, max, angle);
+                _inputMovementSpeed = Mathf.Lerp(sideMovementSpeed, backwardsMovementSpeed, delta);
+                return;
+            }
+
+            // Backward
+            if (angle > 135 + offset && angle < 225 - offset)
+            {
+                _inputMovementSpeed = backwardsMovementSpeed;
+                return;
+            }
+
+            // Backward to Left
+            if (angle >= 225 - offset && angle <= 225 + offset)
+            {
+                var min = 225 - offset;
+                var max = 225 + offset;
+                var delta = Mathf.InverseLerp(min, max, angle);
+                _inputMovementSpeed = Mathf.Lerp(backwardsMovementSpeed, sideMovementSpeed, delta);
+                return;
+            }
+
+            // Left
+            if (angle > 225 + offset && angle < 315 - offset)
+            {
+                _inputMovementSpeed = sideMovementSpeed;
+                return;
+            }
+
+            // Left to Forward
+            if (angle >= 315 - offset && angle <= 315 + offset)
+            {
+                var min = 315 - offset;
+                var max = 315 + offset;
+                var delta = Mathf.InverseLerp(min, max, angle);
+                _inputMovementSpeed = Mathf.Lerp(sideMovementSpeed, forwardsMovementSpeed, delta);
+            }
+        }
+
+        private void SetupInputDirection()
+        {
+            var inputVector = _inputs.MovementInput;
+            if (inputVector.magnitude <= 0.1f)
+            {
+                _inputDirection = MovementDirection.None;
+                return;
+            }
+
+            // Calculate the angle in degrees
+            var angle = Mathf.Atan2(inputVector.x, inputVector.z) * Mathf.Rad2Deg;
+
+            // Normalize the angle to be between 0 and 360
+            angle = (angle + 360) % 360;
+
+            switch (angle)
+            {
+                // Determine the direction based on the angle
+                case <= 45:
+                case >= 315:
+                    _inputDirection = MovementDirection.Forward;
+                    break;
+                case > 45 and < 135:
+                    _inputDirection = MovementDirection.Right;
+                    break;
+                case >= 135 and <= 225:
+                    _inputDirection = MovementDirection.Backward;
+                    break;
+                case > 225 and < 315:
+                    _inputDirection = MovementDirection.Left;
+                    break;
+                default:
+                    _inputDirection = MovementDirection.None;
+                    break;
+            }
         }
 
         #endregion
@@ -193,44 +340,12 @@ namespace MobX.Player.Locomotion
                 _postGroundJumpGraceTimer = Timer.FromSeconds(ManeuverSettings.JumpPostGroundingGraceTime);
             }
 
+            var ray = new Ray(_motor.Transform.position, -_motor.Transform.up);
+            _unbiasedGrounded = Physics.Raycast(ray, MovementSettings.GroundCheckDistance,
+                MovementSettings.UnbiasedGroundLayer);
+
             SetupInputDirection();
-        }
-
-        private void SetupInputDirection()
-        {
-            var isStandingStill = _inputs.MovementInput.magnitude <= 0;
-            if (isStandingStill)
-            {
-                _inputDirection = MovementDirection.None;
-                return;
-            }
-
-            var hasForwardInput = _inputs.MovementInput.z > 0;
-            if (hasForwardInput)
-            {
-                _inputDirection = MovementDirection.Forward;
-                return;
-            }
-
-            var hasBackwardInput = _inputs.MovementInput.z < 0;
-            if (hasBackwardInput)
-            {
-                _inputDirection = MovementDirection.Backward;
-                return;
-            }
-
-            var hasLeftInput = _inputs.MovementInput.x > 0;
-            if (hasLeftInput)
-            {
-                _inputDirection = MovementDirection.Right;
-                return;
-            }
-
-            var hasRightInput = _inputs.MovementInput.x < 0;
-            if (hasRightInput)
-            {
-                _inputDirection = MovementDirection.Left;
-            }
+            UpdateInputMovementSpeed();
         }
 
         public void AfterCharacterUpdate(float deltaTime)
@@ -240,6 +355,7 @@ namespace MobX.Player.Locomotion
             _maneuverPressed = false;
             _maneuverPressedThisFrame = false;
             _blinkPressedThisFrame = false;
+            _wasManeuverExecutedThisFrame = false;
         }
 
         #endregion
@@ -269,12 +385,14 @@ namespace MobX.Player.Locomotion
             ProcessMovementInput(ref currentVelocity, deltaTime);
             ProcessGravity(ref currentVelocity, deltaTime);
             ProcessManeuver(ref currentVelocity, deltaTime);
+            ProcessThrustDown(ref currentVelocity, deltaTime);
             ProcessExternalForce(ref currentVelocity, deltaTime);
         }
 
         private void Update()
         {
             ProcessBlinkUpdate();
+            ProcessMovementUpdate();
         }
 
         #endregion
@@ -414,7 +532,7 @@ namespace MobX.Player.Locomotion
 
             StaminaController.ConsumeStamina(staminaCost);
 
-            if (_inputs.BlinkInput.IsPressed() is false)
+            if (InputSettings.BlinkInput.action.IsPressed() is false)
             {
                 StartBlinkExecution();
                 return;
@@ -429,11 +547,128 @@ namespace MobX.Player.Locomotion
         #endregion
 
 
+        #region KKC: Thrustdown
+
+        private void ProcessThrustDown(ref Vector3 currentVelocity, float deltaTime)
+        {
+            if (ShouldStartThrustDown())
+            {
+                StartThrustDown();
+            }
+
+            if (_isThrustDown)
+            {
+                var forceDirection = -_motor.CharacterUp;
+                var timerFactor = ThrustDownSettings.DownwardForceCurve.Evaluate(_thrustDownForceTimer);
+                var force = ThrustDownSettings.DownwardForce * deltaTime * timerFactor;
+                var forceVector = forceDirection * force;
+                _accumulatedThrustDownForce += forceVector;
+
+                var maxMagnitude = ThrustDownSettings.MaxDownwardForceMagnitude;
+                currentVelocity += _accumulatedThrustDownForce;
+                currentVelocity = Vector3.ClampMagnitude(currentVelocity, maxMagnitude);
+                _thrustDownForceTimer += deltaTime;
+
+                _accumulatedGravity = Vector3.zero;
+            }
+        }
+
+        private void StartThrustDown()
+        {
+            _isThrustDown = true;
+            _requireHardInputForNextManeuver = true;
+            _thrustDownForceTimer = 0;
+            _accumulatedThrustDownForce = Vector3.zero;
+        }
+
+        private void StopThrustDown()
+        {
+            if (_isThrustDown is false)
+            {
+                return;
+            }
+
+            _isThrustDown = false;
+            cameraShakeEvent.Raise(ThrustDownSettings.CameraShake);
+            ForceSystem.Singleton.AddForceAtPosition(_motor.Transform.position, ThrustDownSettings.ForceSettings);
+        }
+
+        private bool ShouldStartThrustDown()
+        {
+            if (_isThrustDown)
+            {
+                return false;
+            }
+            if (_unbiasedGrounded)
+            {
+                return false;
+            }
+            if (_motor.GroundingStatus.FoundAnyGround)
+            {
+                return false;
+            }
+
+            if (ThrustDownSettings.ActivationMode.HasFlagUnsafe(ThrustDownActivation.LastManeuver))
+            {
+                if (CheckManeuver())
+                {
+                    return true;
+                }
+            }
+
+            if (ThrustDownSettings.ActivationMode.HasFlagUnsafe(ThrustDownActivation.Input))
+            {
+                if (InputSettings.ThrustDown.action.IsPressed() is false)
+                {
+                    return false;
+                }
+
+                var ray = new Ray(_motor.Transform.position, -_motor.Transform.up);
+                if (Physics.Raycast(ray, ThrustDownSettings.MinHeight, ThrustDownSettings.GroundCheckLayer))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            return false;
+
+            bool CheckManeuver()
+            {
+                if (_maneuverPressedThisFrame is false)
+                {
+                    return false;
+                }
+                if (_wasManeuverExecutedThisFrame)
+                {
+                    return false;
+                }
+                if (_performedManeuverCount < ManeuverSettings.ManeuverCount)
+                {
+                    return false;
+                }
+
+                var ray = new Ray(_motor.Transform.position, -_motor.Transform.up);
+                if (Physics.Raycast(ray, ThrustDownSettings.MinHeight, ThrustDownSettings.GroundCheckLayer))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+        #endregion
+
+
         #region KKC: Maneuver
 
         private void ProcessManeuver(ref Vector3 currentVelocity, float deltaTime)
         {
-            var requestManeuver = _isManeuver ? _maneuverPressedThisFrame : _maneuverPressed;
+            var requestManeuver = _isManeuver || _requireHardInputForNextManeuver
+                ? _maneuverPressedThisFrame
+                : _maneuverPressed;
             var performManeuver = requestManeuver && CanPerformManeuver();
 
             if (performManeuver)
@@ -489,15 +724,40 @@ namespace MobX.Player.Locomotion
 
         private void StartManeuver(ref Vector3 currentVelocity)
         {
-            _maneuver = _inputDirection switch
+            switch (_inputDirection)
             {
-                MovementDirection.None => ManeuverSettings.StandstillManeuver[_performedManeuverCount],
-                MovementDirection.Forward => ManeuverSettings.ForwardManeuver[_performedManeuverCount],
-                MovementDirection.Left => ManeuverSettings.SideManeuver[_performedManeuverCount],
-                MovementDirection.Right => ManeuverSettings.SideManeuver[_performedManeuverCount],
-                MovementDirection.Backward => ManeuverSettings.BackwardsManeuver[_performedManeuverCount],
-                var _ => throw new ArgumentOutOfRangeException()
-            };
+                case MovementDirection.None when _unbiasedGrounded:
+                    _maneuver = ManeuverSettings.StandstillManeuverGrounded[_performedManeuverCount];
+                    break;
+                case MovementDirection.None:
+                    _maneuver = ManeuverSettings.StandstillManeuverAirborne[_performedManeuverCount];
+                    break;
+
+                case MovementDirection.Forward when _unbiasedGrounded:
+                    _maneuver = ManeuverSettings.ForwardManeuverGrounded[_performedManeuverCount];
+                    break;
+                case MovementDirection.Forward:
+                    _maneuver = ManeuverSettings.ForwardManeuverAirborne[_performedManeuverCount];
+                    break;
+
+                case MovementDirection.Left when _unbiasedGrounded:
+                case MovementDirection.Right when _unbiasedGrounded:
+                    _maneuver = ManeuverSettings.SideManeuverGrounded[_performedManeuverCount];
+                    break;
+                case MovementDirection.Left:
+                case MovementDirection.Right:
+                    _maneuver = ManeuverSettings.SideManeuverAirborne[_performedManeuverCount];
+                    break;
+
+                case MovementDirection.Backward when _unbiasedGrounded:
+                    _maneuver = ManeuverSettings.BackwardsManeuverGrounded[_performedManeuverCount];
+                    break;
+                case MovementDirection.Backward:
+                    _maneuver = ManeuverSettings.BackwardsManeuverAirborne[_performedManeuverCount];
+                    break;
+                case var _:
+                    throw new ArgumentOutOfRangeException();
+            }
 
             _currentManeuverType = _maneuver.type;
 
@@ -510,15 +770,16 @@ namespace MobX.Player.Locomotion
             _normalizedManeuverDirection = GetManeuverDirection(_currentManeuverType);
 
             _isWeakManeuver = hasStamina is false;
-            if (_isWeakManeuver)
+            _calculatedManeuverForce = _isWeakManeuver ? _maneuver.weakForce : _maneuver.force;
+
+            if (_postSlideTimer.IsRunning)
             {
-                _calculatedManeuverForce = _maneuver.weakForce;
-            }
-            else
-            {
-                _calculatedManeuverForce = _postSlideTimer.IsRunning
-                    ? _maneuver.postSlideForce
-                    : _maneuver.force;
+                var bonusForce = _maneuver.postSlideBonusForce;
+                var min = CrouchSettings.MinSlideMagnitude;
+                var max = CrouchSettings.MaxSlideMagnitude;
+                var slideMagnitudeDelta = Mathf.InverseLerp(min, max, _slideMagnitude);
+                bonusForce *= _maneuver.postSlideMagnitudeFactor.Evaluate(slideMagnitudeDelta);
+                _calculatedManeuverForce += bonusForce;
             }
 
             _motor.ForceUnground();
@@ -527,10 +788,14 @@ namespace MobX.Player.Locomotion
             _maneuverCooldown = Timer.FromSeconds(_maneuver.maneuverCooldownInSeconds);
             _performedManeuverCount++;
             _accumulatedGravity = Vector3.zero;
+
             if (_currentManeuverType is ManeuverType.Dash)
             {
                 _maneuverTimer = Timer.FromSeconds(_maneuver.minDurationInSeconds);
             }
+
+            _wasManeuverExecutedThisFrame = true;
+            _requireHardInputForNextManeuver = false;
         }
 
         private void StopManeuver()
@@ -605,31 +870,11 @@ namespace MobX.Player.Locomotion
 
         #region KKC: Movement Input
 
-        private float CalculateTargetMovementSpeed()
-        {
-            switch (_inputDirection)
-            {
-                case MovementDirection.Forward:
-                    return _isSprinting
-                        ? MovementSettings.MovementSpeedSprint
-                        : MovementSettings.MovementSpeedForward;
-
-                case MovementDirection.Left:
-                case MovementDirection.Right:
-                    return MovementSettings.MovementSpeedSide;
-
-                case MovementDirection.Backward:
-                    return MovementSettings.MovementSpeedBackward;
-                default:
-                    return 0;
-            }
-        }
-
         private void ProcessMovementInput(ref Vector3 currentVelocity, float deltaTime)
         {
             var wasSprinting = _isSprinting;
             _isSprinting = (MovementSettings.EnableSprint
-                            && _inputs.SprintInput.IsPressed()
+                            && InputSettings.SprintInput.action.IsPressed()
                             && !_isCrouching
                             && ((StaminaController.Stamina >= StaminaController.StaminaPerBar && !wasSprinting)
                                 || (_isSprinting && StaminaController.Stamina > 0))
@@ -639,10 +884,10 @@ namespace MobX.Player.Locomotion
 
             if (_isSprinting)
             {
-                StaminaController.ConsumeStamina(StaminaSettings.StaminaCostSprint);
+                StaminaController.ConsumeStamina(MovementSettings.StaminaCostSprint);
             }
 
-            var targetMovementSpeed = CalculateTargetMovementSpeed();
+            var targetMovementSpeed = _inputMovementSpeed;
 
             if (_isCrouching)
             {
@@ -682,17 +927,33 @@ namespace MobX.Player.Locomotion
                 : MovementSettings.AirborneDirectionSharpness;
 
             // Adjust horizontal velocity towards the oriented input, tangent to the effective ground normal.
-            // TODO: check magnitude but dont make it overpowered
-            // var magnitude = _motor.GroundingStatus.IsStableOnGround
-            //     ? orientedInput.magnitude
-            //     : horizontalVelocity.magnitude;
-            var magnitude = orientedInput.magnitude;
-            var targetVelocity = _motor.GetDirectionTangentToSurface(orientedInput, effectiveGroundNormal) * magnitude;
+
+            _targetMovementMagnitude = _motor.GroundingStatus.IsStableOnGround
+                ? orientedInput.magnitude
+                : horizontalVelocity.magnitude;
+
+            if (_movementMagnitude < orientedInput.magnitude)
+            {
+                _movementMagnitude = orientedInput.magnitude;
+            }
+            if (_slideMagnitude < CrouchSettings.MinSlideMagnitudeToOvercomeMovementLimit)
+            {
+                _movementMagnitude = orientedInput.magnitude;
+            }
+
+            //var magnitude = orientedInput.magnitude;
+            var surfaceTangent = _motor.GetDirectionTangentToSurface(orientedInput, effectiveGroundNormal);
+            var targetVelocity = surfaceTangent * _movementMagnitude;
             horizontalVelocity = Vector3.Lerp(horizontalVelocity, targetVelocity,
                 deltaTime * sharpness);
 
             // Reassemble the current velocity with the adjusted horizontal component.
             currentVelocity = new Vector3(horizontalVelocity.x, currentVelocity.y, horizontalVelocity.z);
+        }
+
+        private void ProcessMovementUpdate()
+        {
+            _movementMagnitude = Mathf.Lerp(_movementMagnitude, _targetMovementMagnitude, Time.deltaTime * 5);
         }
 
         private Vector3 CalculateEffectiveGroundNormal(Vector3 currentVelocity)
@@ -801,8 +1062,8 @@ namespace MobX.Player.Locomotion
                 ? SaveDataSettings.ToggleCrouchGamepadSetting.Value
                 : SaveDataSettings.ToggleCrouchDesktopSetting.Value;
 
-            var isCrouchReleasedThisFrame = _inputs.CrouchInput.WasReleasedThisFrame();
-            var isCrouchPressedThisFrame = _inputs.CrouchInput.WasPressedThisFrame();
+            var isCrouchReleasedThisFrame = InputSettings.CrouchInput.action.WasReleasedThisFrame();
+            var isCrouchPressedThisFrame = InputSettings.CrouchInput.action.WasPressedThisFrame();
 
             HandleCrouchToggle(isCrouchToggle, isCrouchPressedThisFrame, isCrouchReleasedThisFrame);
 
@@ -937,10 +1198,18 @@ namespace MobX.Player.Locomotion
 
         private void StartSlide()
         {
+            var slideCost = CrouchSettings.StaminaCostSlide;
+            var isWeakSlide = StaminaController.HasEnoughStaminaFor(slideCost) is false;
+            if (isWeakSlide && CrouchSettings.CanPerformWeakSlides is false)
+            {
+                return;
+            }
+            _isWeakSlide = isWeakSlide;
+            StaminaController.ConsumeStamina(slideCost);
+
             _isSliding = true;
             _slideTime = _isSprinting ? CrouchSettings.SlideDurationSprint : CrouchSettings.SlideDuration;
             _slideVelocity = _motor.Velocity;
-            StaminaController.ConsumeStamina(StaminaSettings.StaminaCostSlide);
         }
 
         private void StopSliding()
@@ -949,6 +1218,10 @@ namespace MobX.Player.Locomotion
             _slideTime = 0;
             _slideVelocity = default(Vector3);
             _postSlideTimer = Timer.FromSeconds(CrouchSettings.PostSlideGraceTime);
+            if (_isWeakSlide)
+            {
+                SlowController.AddSlow(CrouchSettings.PostWeakSlideSlow);
+            }
         }
 
         private bool ProcessSlide(ref Vector3 currentVelocity, float deltaTime)
@@ -1003,6 +1276,8 @@ namespace MobX.Player.Locomotion
                 _slideVelocity *= frictionFactor;
             }
 
+            _slideMagnitude = _slideVelocity.magnitude;
+
             currentVelocity = new Vector3(_slideVelocity.x, currentVelocity.y, _slideVelocity.z);
             return true;
         }
@@ -1021,7 +1296,7 @@ namespace MobX.Player.Locomotion
 
             var movementInput = _inputs.MovementInput;
             var movementMagnitude = movementInput.magnitude;
-            var isAiming = _inputs.AimInput.IsPressed();
+            var isAiming = InputSettings.AimInput.action.IsPressed();
 
             switch (_inputs.CameraMode)
             {
@@ -1049,6 +1324,18 @@ namespace MobX.Player.Locomotion
         #endregion
 
 
+        #region KKC: Ground Hit
+
+        public void OnGroundHit(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint,
+            ref HitStabilityReport hitStabilityReport)
+        {
+            StopManeuver();
+            StopThrustDown();
+        }
+
+        #endregion
+
+
         #region KKC: Unused Callbacks
 
         public void PostGroundingUpdate(float deltaTime)
@@ -1058,12 +1345,6 @@ namespace MobX.Player.Locomotion
         public bool IsColliderValidForCollisions(Collider other)
         {
             return _ignoredCollider.Contains(other) is false;
-        }
-
-        public void OnGroundHit(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint,
-            ref HitStabilityReport hitStabilityReport)
-        {
-            StopManeuver();
         }
 
         public void OnMovementHit(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint,

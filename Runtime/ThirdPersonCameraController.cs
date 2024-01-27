@@ -1,5 +1,6 @@
 using MobX.Inspector;
 using MobX.Player.Locomotion;
+using MobX.UI;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -50,10 +51,14 @@ namespace MobX.Player
         {
             var direction = settings.MovementInput.action.ReadValue<Vector2>();
             var movementVector = new Vector3(direction.x, 0, direction.y);
-            var rotationVector = settings.LookInput.action.ReadValue<Vector2>();
+            var rotation = settings.LookInput.action.ReadValue<Vector2>();
 
-            var rotationAxisHorizontal = rotationVector.x;
-            var rotationAxisVertical = rotationVector.y;
+            rotation *= Controls.IsGamepadScheme
+                ? settings.LookSensitivityGamepad.Value
+                : settings.LookSensitivityDesktop.Value;
+
+            var rotationAxisHorizontal = rotation.x;
+            var rotationAxisVertical = rotation.y;
             var axisHorizontal = rotationAxisHorizontal * settings.LookSensitivity;
             var axisVertical = rotationAxisVertical * settings.LookSensitivity;
 
@@ -67,7 +72,7 @@ namespace MobX.Player
                 settings.MaxVerticalAngle);
             _targetVerticalRotation = Quaternion.Euler(_currentVerticalAngle, 0, 0);
 
-            var sharpness = Time.deltaTime * settings.LookSharpness;
+            var sharpness = Time.unscaledDeltaTime * settings.LookSharpness;
 
             shoulderTransform.localRotation = Quaternion.Lerp(
                 _currentVerticalRotation,
@@ -85,18 +90,13 @@ namespace MobX.Player
 
             self.position = Character.transform.position;
 
-            var inputs = new LocomotionInputs(
+            var inputs = new CameraInputs(
                 VirtualCamera.transform,
                 movementVector,
                 self.rotation,
-                CameraMode.ThirdPerson,
-                settings.AimInput.action,
-                settings.JumpInput.action,
-                settings.SprintInput.action,
-                settings.CrouchInput.action,
-                settings.BlinkInput);
+                CameraMode.ThirdPerson);
 
-            locomotionController.SetInputs(inputs);
+            locomotionController.SetCameraInputs(inputs);
         }
 
         public void ResetCameraAngles()

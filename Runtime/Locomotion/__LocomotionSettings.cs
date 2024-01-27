@@ -35,7 +35,9 @@ namespace MobX.Player.Locomotion
         [SerializeField] private int maneuverCount = 2;
         [SerializeField] private float jumpPostGroundingGraceTime = .1f;
         [Tooltip("Factor is calculated between post slide bonus jump force min magnitude and max slide magnitude")]
+#pragma warning disable CS0414 // Field is assigned but its value is never used
         [SerializeField] private AnimationCurve postSlideMagnitudeJumpFactor;
+#pragma warning restore CS0414 // Field is assigned but its value is never used
         [SerializeField] private Slow postWeakJumpSlow;
         [SerializeField] private Slow postWeakDashSlow;
         [Space]

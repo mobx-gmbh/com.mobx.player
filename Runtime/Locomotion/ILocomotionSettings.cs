@@ -8,6 +8,7 @@
         CrouchLocomotionSettings CrouchSettings { get; }
         StaminaLocomotionSettings StaminaSettings { get; }
         BlinkLocomotionSettings BlinkSettings { get; }
+        InputLocomotionSettings InputSettings { get; }
         SaveDataLocomotionSettings SaveDataSettings { get; }
     }
 }

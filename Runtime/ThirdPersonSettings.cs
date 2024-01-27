@@ -1,3 +1,4 @@
+using MobX.Mediator;
 using MobX.Mediator.Settings;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -16,11 +17,10 @@ namespace MobX.Player
         [Header("Input")]
         [SerializeField] [Required] private InputActionReference movementInput;
         [SerializeField] [Required] private InputActionReference lookInput;
-        [SerializeField] [Required] private InputActionReference jumpInput;
-        [SerializeField] [Required] private InputActionReference sprintInput;
-        [SerializeField] [Required] private InputActionReference crouchInput;
-        [SerializeField] [Required] private InputActionReference aimInput;
-        [SerializeField] [Required] private InputActionReference blinkInput;
+
+        [Header("Persistent")]
+        [SerializeField] [Required] private FloatSaveAsset lookSensitivityDesktop;
+        [SerializeField] [Required] private FloatSaveAsset lookSensitivityGamepad;
 
         public float LookSharpness => lookSharpness;
         public float LookSensitivity => lookSensitivity;
@@ -29,10 +29,8 @@ namespace MobX.Player
 
         public InputActionReference MovementInput => movementInput;
         public InputActionReference LookInput => lookInput;
-        public InputActionReference JumpInput => jumpInput;
-        public InputActionReference SprintInput => sprintInput;
-        public InputActionReference CrouchInput => crouchInput;
-        public InputActionReference AimInput => aimInput;
-        public InputActionReference BlinkInput => blinkInput;
+
+        public FloatSaveAsset LookSensitivityDesktop => lookSensitivityDesktop;
+        public FloatSaveAsset LookSensitivityGamepad => lookSensitivityGamepad;
     }
 }

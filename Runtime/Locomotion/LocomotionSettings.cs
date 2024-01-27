@@ -49,6 +49,20 @@ namespace MobX.Player.Locomotion
         [InlineFoldout]
         public BlinkLocomotionSettings BlinkSettings { get; private set; }
 
+        [Foldout("ThrustDown")]
+        [Line(DrawTiming = DrawTiming.After)]
+        [SerializeField] private ThrustDownLocomotionSettings thrustDownSettings;
+        [Foldout("ThrustDown")]
+        [InlineFoldout]
+        public ThrustDownLocomotionSettings ThrustDownSettings { get; private set; }
+
+        [Foldout("Input")]
+        [Line(DrawTiming = DrawTiming.After)]
+        [SerializeField] private InputLocomotionSettings inputSettings;
+        [Foldout("Input")]
+        [InlineFoldout]
+        public InputLocomotionSettings InputSettings { get; private set; }
+
         [Foldout("SaveGame")]
         [Line(DrawTiming = DrawTiming.After)]
         [SerializeField] private SaveDataLocomotionSettings saveDataSettings;
@@ -89,6 +103,8 @@ namespace MobX.Player.Locomotion
             ManeuverSettings = maneuverSettings;
             StaminaSettings = staminaSettings;
             BlinkSettings = blinkSettings;
+            ThrustDownSettings = thrustDownSettings;
+            InputSettings = inputSettings;
             SaveDataSettings = saveDataSettings;
         }
 
@@ -125,6 +141,16 @@ namespace MobX.Player.Locomotion
         public void OverrideStaminaSettings(StaminaLocomotionSettings settings)
         {
             StaminaSettings = settings;
+        }
+
+        public void OverrideThrustDownSettings(ThrustDownLocomotionSettings settings)
+        {
+            ThrustDownSettings = settings;
+        }
+
+        public void OverrideInputSettings(InputLocomotionSettings settings)
+        {
+            InputSettings = settings;
         }
 
         public void OverrideSaveGameSettings(SaveDataLocomotionSettings settings)

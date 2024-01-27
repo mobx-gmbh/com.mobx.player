@@ -1,5 +1,6 @@
 ﻿using MobX.Mediator.Settings;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace MobX.Player.Locomotion
 {
@@ -7,29 +8,42 @@ namespace MobX.Player.Locomotion
     {
         [SerializeField] private int maneuverCount = 2;
         [SerializeField] private float jumpPostGroundingGraceTime = .1f;
-        [Tooltip("Factor is calculated between post slide bonus jump force min magnitude and max slide magnitude")]
-        [SerializeField] private AnimationCurve postSlideMagnitudeJumpFactor;
         [SerializeField] private Slow postWeakJumpSlow;
         [SerializeField] private Slow postWeakDashSlow;
-        [Space]
-        [SerializeField] private ManeuverSettings[] standstillManeuver;
-        [SerializeField] private ManeuverSettings[] forwardManeuver;
-        [SerializeField] private ManeuverSettings[] sideManeuver;
-        [SerializeField] private ManeuverSettings[] backwardsManeuver;
 
         [Space]
-#pragma warning disable CS0414 // Field is assigned but its value is never used
-        [SerializeField] private ManeuverSettingsOverride postBlinkManeuverOverride;
-#pragma warning restore CS0414 // Field is assigned but its value is never used
+        [Header("Standstill")]
+        [FormerlySerializedAs("standstillManeuverOld")]
+        [SerializeField] private ManeuverSettings[] standstillManeuverGrounded;
+        [SerializeField] private ManeuverSettings[] standstillManeuverAirborne;
+
+        [Header("Forwards")]
+        [FormerlySerializedAs("forwardManeuverOld")]
+        [SerializeField] private ManeuverSettings[] forwardManeuverGrounded;
+        [SerializeField] private ManeuverSettings[] forwardManeuverAirborne;
+
+        [Header("Side")]
+        [FormerlySerializedAs("sideManeuverOld")]
+        [SerializeField] private ManeuverSettings[] sideManeuverGrounded;
+        [SerializeField] private ManeuverSettings[] sideManeuverAirborne;
+
+        [Header("Backwards")]
+        [FormerlySerializedAs("backwardsManeuverOld")]
+        [SerializeField] private ManeuverSettings[] backwardsManeuverGrounded;
+        [SerializeField] private ManeuverSettings[] backwardsManeuverAirborne;
 
         public int ManeuverCount => maneuverCount;
         public float JumpPostGroundingGraceTime => jumpPostGroundingGraceTime;
-        public AnimationCurve PostSlideMagnitudeJumpFactor => postSlideMagnitudeJumpFactor;
         public Slow PostWeakJumpSlow => postWeakJumpSlow;
         public Slow PostWeakDashSlow => postWeakDashSlow;
-        public ManeuverSettings[] StandstillManeuver => standstillManeuver;
-        public ManeuverSettings[] ForwardManeuver => forwardManeuver;
-        public ManeuverSettings[] SideManeuver => sideManeuver;
-        public ManeuverSettings[] BackwardsManeuver => backwardsManeuver;
+
+        public ManeuverSettings[] StandstillManeuverGrounded => standstillManeuverGrounded;
+        public ManeuverSettings[] StandstillManeuverAirborne => standstillManeuverAirborne;
+        public ManeuverSettings[] ForwardManeuverGrounded => forwardManeuverGrounded;
+        public ManeuverSettings[] ForwardManeuverAirborne => forwardManeuverAirborne;
+        public ManeuverSettings[] SideManeuverGrounded => sideManeuverGrounded;
+        public ManeuverSettings[] SideManeuverAirborne => sideManeuverAirborne;
+        public ManeuverSettings[] BackwardsManeuverGrounded => backwardsManeuverGrounded;
+        public ManeuverSettings[] BackwardsManeuverAirborne => backwardsManeuverAirborne;
     }
 }

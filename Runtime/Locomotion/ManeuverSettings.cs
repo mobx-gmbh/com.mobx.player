@@ -1,5 +1,4 @@
-﻿using MobX.Utilities.Types;
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace MobX.Player.Locomotion
@@ -10,26 +9,13 @@ namespace MobX.Player.Locomotion
         public ManeuverType type;
         public float force;
         public float weakForce;
-        public float postSlideForce;
         public AnimationCurve forceFactorOverTime;
         public AnimationCurve gravityFactorOverTime;
+        public StaminaCost staminaCost;
         public float maneuverCooldownInSeconds;
         public float minDurationInSeconds;
-        public StaminaCost staminaCost;
-    }
-
-    [Serializable]
-    public struct ManeuverSettingsOverride
-    {
-        public float graceTime;
-        public Optional<ManeuverType> type;
-        public Optional<float> force;
-        public Optional<float> weakForce;
-        public Optional<float> postSlideForce;
-        public Optional<AnimationCurve> forceFactorOverTime;
-        public Optional<AnimationCurve> gravityFactorOverTime;
-        public Optional<float> maneuverCooldownInSeconds;
-        public Optional<float> minDurationInSeconds;
-        public Optional<StaminaCost> staminaCost;
+        public float postSlideBonusForce;
+        [Tooltip("Factor is calculated between post slide bonus jump force min magnitude and max slide magnitude")]
+        public AnimationCurve postSlideMagnitudeFactor;
     }
 }
