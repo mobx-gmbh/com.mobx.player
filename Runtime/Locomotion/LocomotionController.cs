@@ -46,7 +46,6 @@ namespace MobX.Player.Locomotion
 
         // Basic Input Fields
         private bool _hasInputs;
-        [Monitor]
         private MovementDirection _inputDirection;
         private CameraInputs _inputs;
 
@@ -63,7 +62,7 @@ namespace MobX.Player.Locomotion
         private int _jumpCounter;
         private float _movementMagnitude;
         private float _targetMovementMagnitude;
-        [Monitor] private float _inputMovementSpeed;
+        private float _inputMovementSpeed;
 
         // Sliding Mechanics
         private float _slideTime;
@@ -117,9 +116,9 @@ namespace MobX.Player.Locomotion
         [Monitor] private bool _unbiasedGrounded;
 
         // Thrustdown
-        [Monitor] private bool _isThrustDown;
-        [Monitor] private Vector3 _accumulatedThrustDownForce;
-        [Monitor] private float _thrustDownForceTimer;
+        private bool _isThrustDown;
+        private Vector3 _accumulatedThrustDownForce;
+        private float _thrustDownForceTimer;
 
         #endregion
 
@@ -378,6 +377,7 @@ namespace MobX.Player.Locomotion
             if (ProcessSlide(ref currentVelocity, deltaTime))
             {
                 ProcessGravity(ref currentVelocity, deltaTime);
+                ProcessManeuver(ref currentVelocity, deltaTime);
                 ProcessExternalForce(ref currentVelocity, deltaTime);
                 return;
             }
@@ -800,11 +800,6 @@ namespace MobX.Player.Locomotion
 
         private void StopManeuver()
         {
-            if (_maneuverTimer.IsRunning)
-            {
-                return;
-            }
-
             if (_isManeuver is false)
             {
                 return;
@@ -887,7 +882,8 @@ namespace MobX.Player.Locomotion
                 StaminaController.ConsumeStamina(MovementSettings.StaminaCostSprint);
             }
 
-            var targetMovementSpeed = _inputMovementSpeed;
+            var targetMovementSpeed =
+                _isSprinting ? settings.MovementSettings.MovementSpeedSprint : _inputMovementSpeed;
 
             if (_isCrouching)
             {
@@ -1210,6 +1206,9 @@ namespace MobX.Player.Locomotion
             _isSliding = true;
             _slideTime = _isSprinting ? CrouchSettings.SlideDurationSprint : CrouchSettings.SlideDuration;
             _slideVelocity = _motor.Velocity;
+
+            StopManeuver();
+            _requireHardInputForNextManeuver = true;
         }
 
         private void StopSliding()
@@ -1329,7 +1328,10 @@ namespace MobX.Player.Locomotion
         public void OnGroundHit(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint,
             ref HitStabilityReport hitStabilityReport)
         {
-            StopManeuver();
+            if (_maneuverTimer.IsRunning is false)
+            {
+                StopManeuver();
+            }
             StopThrustDown();
         }
 

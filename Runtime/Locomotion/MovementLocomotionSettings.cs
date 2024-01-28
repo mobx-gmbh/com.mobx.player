@@ -11,14 +11,15 @@ namespace MobX.Player.Locomotion
         [SerializeField] private float movementSpeedSide = 4.3f;
         [SerializeField] private float movementSpeedBackward = 3.2f;
         [SerializeField] private float movementSpeedTransitionAngle = 10;
-        [SerializeField] private bool enableSprint = true;
-        [SerializeField] private StaminaCost staminaCostSprint = StaminaCost.PerSeconds(10);
-        [SerializeField] private float movementSpeedSprint = 9f;
         [SerializeField] private float movementSpeedIncreaseSharpness = 7f;
         [SerializeField] private float movementSpeedDecaySharpness = 25f;
         [SerializeField] private float movementDirectionSharpness = 25f;
         [SerializeField] private float airborneDirectionSharpness = 5f;
         [SerializeField] private float minimumMovementSpeed = .5f;
+        [Header("Sprint")]
+        [SerializeField] private bool enableSprint = true;
+        [SerializeField] private StaminaCost staminaCostSprint = StaminaCost.PerSeconds(10);
+        [SerializeField] private float movementSpeedSprint = 9f;
 
         [Header("Rotation")]
         [SerializeField] private float rotationSharpness = 25;
