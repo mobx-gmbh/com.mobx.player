@@ -16,6 +16,8 @@ namespace MobX.Player.Locomotion
         [SerializeField] private float movementDirectionSharpness = 25f;
         [SerializeField] private float airborneDirectionSharpness = 5f;
         [SerializeField] private float minimumMovementSpeed = .5f;
+        [SerializeField] private float maxMagnitude = 100;
+        [SerializeField] private float maxExternalForceMagnitude = 100;
         [Header("Sprint")]
         [SerializeField] private bool enableSprint = true;
         [SerializeField] private StaminaCost staminaCostSprint = StaminaCost.PerSeconds(10);
@@ -30,14 +32,16 @@ namespace MobX.Player.Locomotion
         public float MovementSpeedSide => movementSpeedSide;
         public float MovementSpeedBackward => movementSpeedBackward;
         public float MovementSpeedTransitionAngle => movementSpeedTransitionAngle;
-        public bool EnableSprint => enableSprint;
-        public StaminaCost StaminaCostSprint => staminaCostSprint;
-        public float MovementSpeedSprint => movementSpeedSprint;
         public float MovementSpeedIncreaseSharpness => movementSpeedIncreaseSharpness;
         public float MovementSpeedDecaySharpness => movementSpeedDecaySharpness;
         public float MovementDirectionSharpness => movementDirectionSharpness;
         public float AirborneDirectionSharpness => airborneDirectionSharpness;
         public float MinimumMovementSpeed => minimumMovementSpeed;
+        public float MaxMagnitude => maxMagnitude;
+        public float MaxExternalForceMagnitude => maxExternalForceMagnitude;
+        public bool EnableSprint => enableSprint;
+        public StaminaCost StaminaCostSprint => staminaCostSprint;
+        public float MovementSpeedSprint => movementSpeedSprint;
         public float RotationSharpness => rotationSharpness;
     }
 }

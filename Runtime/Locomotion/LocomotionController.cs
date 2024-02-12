@@ -18,16 +18,16 @@ namespace MobX.Player.Locomotion
     [MGroupName("Locomotion")]
     [ExecuteAfter(typeof(KinematicCharacterMotor))]
     [RequireComponent(typeof(KinematicCharacterMotor))]
-    [RequireComponent(typeof(StaminaController))]
-    [RequireComponent(typeof(SlowController))]
     [SuppressMessage("ReSharper", "ConvertToAutoPropertyWithPrivateSetter")]
-    public class LocomotionController : MonoBehaviour, ICharacterController, IDrawGizmos, IForceReceiver
+    public class LocomotionController : MonoBehaviour, ICharacterController, IDrawGizmos, IForceReceiver,
+        IFieldOfViewModifier
     {
         #region Fields
 
         [SerializeField] [Required] private LocomotionSettings settings;
 
         [Header("Mediator")]
+        [SerializeField] [Required] private FieldOfViewModifierList fieldOfViewModifier;
         [SerializeField] [Required] private CameraShakeEvent cameraShakeEvent;
 
         [Header("Transforms")]
@@ -38,10 +38,8 @@ namespace MobX.Player.Locomotion
         [SerializeField] [Required] private Transform sprintJumpDirection;
         [SerializeField] [Required] private Transform forwardJumpDirection;
 
-        // Reference Fields
         private readonly List<Collider> _ignoredCollider = new();
         private KinematicCharacterMotor _motor;
-        private StaminaController StaminaController { get; set; }
         private SlowController SlowController { get; set; }
 
         // Basic Input Fields
@@ -101,7 +99,9 @@ namespace MobX.Player.Locomotion
         private bool _blinkPressed;
         private Vector3 _blinkDirection;
         private float _blinkForce;
+        [Monitor]
         private BlinkState _blinkState;
+        [Monitor]
         private float _currentBlinkCharge;
         private int _blinkCharges;
         private Timer _blinkCooldown;
@@ -129,14 +129,18 @@ namespace MobX.Player.Locomotion
         private GravityLocomotionSettings GravitySettings => settings.GravitySettings;
         private ManeuverLocomotionSettings ManeuverSettings => settings.ManeuverSettings;
         private CrouchLocomotionSettings CrouchSettings => settings.CrouchSettings;
-        private StaminaLocomotionSettings StaminaSettings => settings.StaminaSettings;
         private BlinkLocomotionSettings BlinkSettings => settings.BlinkSettings;
         private ThrustDownLocomotionSettings ThrustDownSettings => settings.ThrustDownSettings;
         private InputLocomotionSettings InputSettings => settings.InputSettings;
         private SaveDataLocomotionSettings SaveDataSettings => settings.SaveDataSettings;
 
-        private Vector3 Velocity => transform.position - _lastPosition;
+        public Quaternion Rotation => transform.rotation;
+        public Vector3 TransientPosition => _motor.TransientPosition;
+        public Vector3 Forward => _motor.CharacterForward;
+        public Vector3 Velocity => transform.position - _lastPosition;
         public Vector3 CenterOfGravity => centerOfGravity.position;
+
+        public KinematicCharacterMotor Motor => _motor;
 
         #endregion
 
@@ -147,7 +151,6 @@ namespace MobX.Player.Locomotion
         {
             Assert.IsNotNull(settings);
 
-            StaminaController = GetComponent<StaminaController>();
             SlowController = GetComponent<SlowController>();
             _motor = GetComponent<KinematicCharacterMotor>();
             _motor.CharacterController = this;
@@ -157,6 +160,7 @@ namespace MobX.Player.Locomotion
             _height = _defaultHeight;
             this.StartMonitoring();
 
+            fieldOfViewModifier.Add(this);
             Gameloop.AddTimeScaleModifier(ModifyTimeScale);
         }
 
@@ -164,6 +168,7 @@ namespace MobX.Player.Locomotion
         {
             this.StopMonitoring();
             _ignoredCollider.Clear();
+            fieldOfViewModifier.Remove(this);
 
             Gameloop.RemoveTimeScaleModifier(ModifyTimeScale);
         }
@@ -448,11 +453,6 @@ namespace MobX.Player.Locomotion
             {
                 return;
             }
-            var hasEnoughStamina = StaminaController.HasEnoughStaminaFor(StaminaCost.Bar());
-            if (hasEnoughStamina is false)
-            {
-                return;
-            }
             _blinkState = BlinkState.Charging;
             _blinkCharges = 0;
             _currentBlinkCharge = 0;
@@ -466,7 +466,6 @@ namespace MobX.Player.Locomotion
             }
             if (_blinkCharges < BlinkSettings.MaxCharges)
             {
-                StaminaController.ConsumeStamina(StaminaCost.RemainingBar());
                 _blinkCharges++;
             }
             _requestBlinkVelocityReset = true;
@@ -503,9 +502,33 @@ namespace MobX.Player.Locomotion
             _blinkCooldown = Timer.FromSeconds(cooldown);
         }
 
+        private float _blinkFieldOfViewOffset;
+        private float _blinkChargeFieldOfView;
+
+        public void ModifyFieldOfView(ref float fieldOfView, float unmodifiedFieldOfView)
+        {
+            _blinkChargeFieldOfView = Mathf.Lerp(_blinkChargeFieldOfView, 0, Time.deltaTime * 10);
+            _blinkFieldOfViewOffset = Mathf.Lerp(_blinkFieldOfViewOffset, 0, Time.deltaTime * 10);
+
+            if (_blinkState == BlinkState.Blinking)
+            {
+                _blinkFieldOfViewOffset =
+                    settings.BlinkSettings.FieldOfViewOffsetOverTime.Evaluate(_blinkExecutionTimer.Delta());
+            }
+            if (_blinkState == BlinkState.Charging)
+            {
+                var max = settings.BlinkSettings.MaxCharges;
+                var delta = (_currentBlinkCharge + _blinkCharges) / max;
+                _blinkChargeFieldOfView = settings.BlinkSettings.ChargeFieldOfViewOffsetOverTime.Evaluate(delta);
+            }
+
+            fieldOfView += _blinkChargeFieldOfView;
+            fieldOfView += _blinkFieldOfViewOffset;
+        }
+
         private void ProcessBlinkUpdate()
         {
-            if (_blinkState != BlinkState.Charging)
+            if (_blinkState is not BlinkState.Charging)
             {
                 return;
             }
@@ -520,17 +543,6 @@ namespace MobX.Player.Locomotion
                 _currentBlinkCharge = 0;
                 _blinkCharges++;
             }
-
-            var staminaCost = StaminaCost.BarsPerSecond(chargePerSecond);
-            var hasEnoughStamina = StaminaController.HasEnoughStaminaFor(staminaCost);
-
-            if (hasEnoughStamina is false)
-            {
-                StartBlinkExecution();
-                return;
-            }
-
-            StaminaController.ConsumeStamina(staminaCost);
 
             if (InputSettings.BlinkInput.action.IsPressed() is false)
             {
@@ -763,13 +775,7 @@ namespace MobX.Player.Locomotion
 
             currentVelocity.y = 0;
 
-            var staminaCosts = _maneuver.staminaCost;
-            var hasStamina = StaminaController.HasEnoughStaminaFor(staminaCosts);
-            StaminaController.ConsumeStamina(staminaCosts);
-
             _normalizedManeuverDirection = GetManeuverDirection(_currentManeuverType);
-
-            _isWeakManeuver = hasStamina is false;
             _calculatedManeuverForce = _isWeakManeuver ? _maneuver.weakForce : _maneuver.force;
 
             if (_postSlideTimer.IsRunning)
@@ -871,16 +877,11 @@ namespace MobX.Player.Locomotion
             _isSprinting = (MovementSettings.EnableSprint
                             && InputSettings.SprintInput.action.IsPressed()
                             && !_isCrouching
-                            && ((StaminaController.Stamina >= StaminaController.StaminaPerBar && !wasSprinting)
-                                || (_isSprinting && StaminaController.Stamina > 0))
+                            && (!wasSprinting
+                                || _isSprinting)
                             && _inputDirection is MovementDirection.Forward
                             && _motor.GroundingStatus.IsStableOnGround)
                            || (wasSprinting && _isManeuver);
-
-            if (_isSprinting)
-            {
-                StaminaController.ConsumeStamina(MovementSettings.StaminaCostSprint);
-            }
 
             var targetMovementSpeed =
                 _isSprinting ? settings.MovementSettings.MovementSpeedSprint : _inputMovementSpeed;
@@ -1039,12 +1040,16 @@ namespace MobX.Player.Locomotion
             }
 
             _externalForce += force;
+            _externalForce = Vector3.ClampMagnitude(_externalForce, 15);
         }
 
         private void ProcessExternalForce(ref Vector3 currentVelocity, float deltaTime)
         {
+            _externalForce =
+                Vector3.ClampMagnitude(_externalForce, settings.MovementSettings.MaxExternalForceMagnitude);
             currentVelocity += _externalForce;
             _externalForce = Vector3.zero;
+            currentVelocity = Vector3.ClampMagnitude(currentVelocity, settings.MovementSettings.MaxMagnitude);
         }
 
         #endregion
@@ -1194,15 +1199,6 @@ namespace MobX.Player.Locomotion
 
         private void StartSlide()
         {
-            var slideCost = CrouchSettings.StaminaCostSlide;
-            var isWeakSlide = StaminaController.HasEnoughStaminaFor(slideCost) is false;
-            if (isWeakSlide && CrouchSettings.CanPerformWeakSlides is false)
-            {
-                return;
-            }
-            _isWeakSlide = isWeakSlide;
-            StaminaController.ConsumeStamina(slideCost);
-
             _isSliding = true;
             _slideTime = _isSprinting ? CrouchSettings.SlideDurationSprint : CrouchSettings.SlideDuration;
             _slideVelocity = _motor.Velocity;
@@ -1436,5 +1432,11 @@ namespace MobX.Player.Locomotion
         }
 
         #endregion
+
+
+        public void KillGravity()
+        {
+            _accumulatedGravity = default(Vector3);
+        }
     }
 }

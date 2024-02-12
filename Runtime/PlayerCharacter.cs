@@ -11,7 +11,6 @@ namespace MobX.Player
     /// </summary>
     [SelectionBase]
     [RequireComponent(typeof(LocomotionController))]
-    [RequireComponent(typeof(StaminaController))]
     public class PlayerCharacter : MonoBehaviour, IDrawGizmos
     {
         #region Inspector
@@ -27,8 +26,6 @@ namespace MobX.Player
 
         [Header("Locomotion")]
         [SerializeField] [Required] private LocomotionController locomotionController;
-        [SerializeField] [Required] private StaminaController staminaController;
-        [SerializeField] [Required] private SlowController slowController;
 
         #endregion
 
@@ -40,8 +37,6 @@ namespace MobX.Player
         public TopdownCameraController TopdownCameraController => topdownCameraController;
 
         public LocomotionController LocomotionController => locomotionController;
-        public StaminaController StaminaController => staminaController;
-        public SlowController SlowController => slowController;
 
         public Transform FreeCameraDefaultPosition => freeCameraDefaultPosition;
         public Transform ExternalCameraFolder { get; private set; }

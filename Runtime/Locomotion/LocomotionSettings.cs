@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace MobX.Player.Locomotion
 {
-    public class LocomotionSettings : SettingsAsset, ILocomotionSettings
+    public class LocomotionSettings : SettingsAsset
     {
         [Foldout("Movement")]
         [Line(DrawTiming = DrawTiming.After)]

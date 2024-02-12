@@ -15,6 +15,10 @@ namespace MobX.Player.Locomotion
         [SerializeField] private float chargeTimeScale = .1f;
         [SerializeField] private float timeScaleFadeInSharpness = 25f;
         [SerializeField] private float postBlinkMagnitudeLimitation = 20;
+        [Space]
+        [SerializeField] private AnimationCurve fieldOfViewOffsetOverTime;
+        [Space]
+        [SerializeField] private AnimationCurve chargeFieldOfViewOffsetOverTime;
 
         public float Force => force;
         public float DurationPerCharge => durationPerCharge;
@@ -24,5 +28,7 @@ namespace MobX.Player.Locomotion
         public float ChargeTimeScale => chargeTimeScale;
         public float TimeScaleFadeInSharpness => timeScaleFadeInSharpness;
         public float PostBlinkMagnitudeLimitation => postBlinkMagnitudeLimitation;
+        public AnimationCurve FieldOfViewOffsetOverTime => fieldOfViewOffsetOverTime;
+        public AnimationCurve ChargeFieldOfViewOffsetOverTime => chargeFieldOfViewOffsetOverTime;
     }
 }

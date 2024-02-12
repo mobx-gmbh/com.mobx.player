@@ -8,23 +8,20 @@ namespace MobX.Player
     [ExecuteInEditMode]
     public class FieldOfViewController : MonoBehaviour
     {
+        [SerializeField] [Required] private FieldOfViewModifierList fieldOfViewModifier;
         [SerializeField] [Required] private CinemachineVirtualCamera virtualCamera;
         [SerializeField] [Required] private ValueAssetRO<int> fieldOfView;
 
-        private void OnEnable()
+        private void Update()
         {
-            fieldOfView.Changed += UpdateFieldOfView;
-            UpdateFieldOfView(fieldOfView.Value);
-        }
+            var fieldOfViewValue = (float) fieldOfView.Value;
+            var fieldOfViewUnmodified = fieldOfView.Value;
+            foreach (var modifier in fieldOfViewModifier)
+            {
+                modifier.ModifyFieldOfView(ref fieldOfViewValue, fieldOfViewUnmodified);
+            }
 
-        private void OnDisable()
-        {
-            fieldOfView.Changed -= UpdateFieldOfView;
-        }
-
-        private void UpdateFieldOfView(int fov)
-        {
-            virtualCamera.m_Lens.FieldOfView = fov;
+            virtualCamera.m_Lens.FieldOfView = fieldOfViewValue;
         }
     }
 }
